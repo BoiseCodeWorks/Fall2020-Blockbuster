@@ -19,7 +19,7 @@ namespace Blockbuster.Controllers
     private void GetUserInput()
     {
       Utils.PrintLogo();
-      Console.WriteLine("Options: (R)ent, R(e)turn, (S)earch, (H)elp");
+      Console.WriteLine("Options: (R)ent, R(e)turn, (B)uy, (H)elp");
       string input = Console.ReadLine().ToLower();
       Console.Clear();
       switch (input)
@@ -32,9 +32,9 @@ namespace Blockbuster.Controllers
         case "e":
           ReturnMovie();
           break;
-        case "search":
-        case "s":
-          Search();
+        case "buy":
+        case "b":
+          Buy();
           break;
         case "help":
         case "h":
@@ -53,12 +53,15 @@ namespace Blockbuster.Controllers
       // Display available movies
       // FIXME WHAT HAPPENS IF THERE ARE NO MOVIES
       Utils.PrintLogo();
-      Console.WriteLine(_Service.GetMovies(true));
+      Console.WriteLine(_Service.GetRentables(true));
       Console.Write("Enter a number to rent: ");
       string inputStr = Console.ReadLine();
       if (int.TryParse(inputStr, out int index) && index > 0)
       {
+        System.Console.WriteLine("Scanning.....");
+        Thread.Sleep(500);
         Console.WriteLine(_Service.Rent(index - 1));
+        Console.Beep();
         Thread.Sleep(2000);
         Console.Clear();
       }
@@ -67,7 +70,7 @@ namespace Blockbuster.Controllers
     private void ReturnMovie()
     {
       Utils.PrintLogo();
-      Console.WriteLine(_Service.GetMovies(false));
+      Console.WriteLine(_Service.GetRentables(false));
       Console.Write("Enter a number to return: ");
       string inputStr = Console.ReadLine();
       if (int.TryParse(inputStr, out int index) && index > 0)
@@ -77,9 +80,10 @@ namespace Blockbuster.Controllers
         Console.Clear();
       }
     }
-    private void Search()
+    private void Buy()
     {
-      throw new NotImplementedException();
+      Console.WriteLine(_Service.GetPurchasables());
+      Console.ReadLine();
     }
     private void Help()
     {

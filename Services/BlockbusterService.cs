@@ -1,55 +1,71 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Blockbuster.Interfaces;
 using Blockbuster.Models;
 
 namespace Blockbuster.Services
 {
   class BlockbusterService
   {
-    public List<Movie> Movies { get; set; }
+    public List<IRentable> Rentables { get; set; }
 
+    public List<Snack> Snacks { get; set; }
 
-    internal string GetMovies(bool available)
+    internal string GetRentables(bool available)
     {
-      // get all the movies that requested
-      var movies = Movies.FindAll(m => m.IsAvailable == available);
-      if (movies.Count == 0)
+      // get all the movies that were requested
+      var rentables = Rentables.FindAll(r => r.IsAvailable == available);
+      // if there are not short out and send back nothing
+      if (rentables.Count == 0)
       {
-        return "NO MOVIES HERE";
+        return "NOTHING HERE";
       }
-      string list = available ? "Movies to Rent\n" : "Movies to Return\n";
-      for (int i = 0; i < movies.Count; i++)
+
+
+      // create 2 lists one for movies, and one for "other"
+      string movieList = "";
+      movieList += available ? "Movies to Rent\n" : "Movies to Return\n";
+      string others = "Other: \n";
+
+      // itterate over the list of IRentables and check their types to add to the right list
+      for (int i = 0; i < rentables.Count; i++)
       {
-        Movie movie = movies[i];
-        list += $"{i + 1}. {movie.Title} - {movie.Description}({movie.Year})";
-        // NOTE depending on the original type when created it will run the virtual default or the class override of Play
-        // movie.Play();
-
-        // EXPLICIT CASTING
-        // var bad = (VHS)movie;
-        // OPTION 1
-        if (movie is DVD)
+        var rentable = rentables[i];
+        if (rentable is Movie)
         {
-          var mov = (DVD)movie;
-          list += $"[DVD Discs{mov.Discs}]\n";
+          var movie = (Movie)rentable;
+          movieList += $"{i + 1}. {movie.Title} - {movie.Description}({movie.Year})\n";
         }
-
-        // OPTION 2
-        VHS vhs = movie as VHS;
-        if (vhs != null)
+        else if (rentable is GameConsole)
         {
-          string message = vhs.IsRewound ? "Ready" : "Needs Rewound";
-          list += $"[VHS {message}]\n";
+          var con = (GameConsole)rentable;
+          others += $"{i + 1}. {con.Make} {con.Model} ({con.RentalCost}/week)\n";
         }
+      }
+      return movieList + "\n\n" + others;
+    }
+    internal string GetPurchasables()
+    {
+      var list = "ORDER FROM THE FOLLOWING: \n";
+      List<IPurchasable> items = new List<IPurchasable>();
+      items.AddRange(Snacks);
+      // NOTE filter all rentables to only inclue things that can be purchased
+      var purchasableRents = Rentables.FindAll(r => r is IPurchasable && r.IsAvailable);
+      // NOTE Select functions like .map
+      var rentItems = purchasableRents.Select(elem => (IPurchasable)elem);
+      items.AddRange(rentItems);
+
+      for (int i = 0; i < items.Count; i++)
+      {
+        IPurchasable item = items[i];
+        list += $"{i + 1}. {item.Name} - ${item.Price}\n";
       }
       return list;
     }
-
-
-
     internal string Rent(int index)
     {
-      var movies = Movies.FindAll(m => m.IsAvailable);
+      var movies = Rentables.FindAll(m => m.IsAvailable);
       if (index < movies.Count)
       {
         movies[index].IsAvailable = false;
@@ -57,10 +73,9 @@ namespace Blockbuster.Services
       }
       return "Invalid Selection, You Ignoramus";
     }
-
     internal string Return(int index)
     {
-      var movies = Movies.FindAll(m => !m.IsAvailable);
+      var movies = Rentables.FindAll(m => !m.IsAvailable);
       if (index < movies.Count)
       {
         movies[index].IsAvailable = false;
@@ -68,18 +83,24 @@ namespace Blockbuster.Services
       }
       return "Invalid Selection, You Ignoramus";
     }
-
     public BlockbusterService()
     {
-      Movies = new List<Movie>(){
+      Rentables = new List<IRentable>(){
         // IMPLICIT CASTING (can implicitly cast up)
-          new VHS("Jurassic Park", 1993, "Dino's are Cool but maybe not so nice"),
-          new DVD("Willy Wonka", 1971, "A Chocolate mogal murders some kids", 1, true),
-          new DVD("LOTR", 2001, "A Small man returns a lost ring, on a really long walk", 3, true),
-          new VHS("The Pagemaster", 1994, "Home Alone in a Library")
+          new VHS("Jurassic Park", 1993, "Dino's are Cool but maybe not so nice", 1),
+          new DVD("Willy Wonka", 1971, "A Chocolate mogal murders some kids", 1, true, 1),
+          new DVD("LOTR", 2001, "A Small man returns a lost ring, on a really long walk", 3, true, 3),
+          new VHS("The Pagemaster", 1994, "Home Alone in a Library", 5),
+          new GameConsole("Sony", "Playstation", 15)
         };
+      Snacks = new List<Snack>(){
+        new Snack(5, "microwave popcorn 1.0oz", "PPC101"),
+        new Snack(7, "microwave popcorn 1.3oz", "PPC102"),
+        new Snack(4, "Pickle in Bag (DILL)", "PIB101"),
+        new Snack(4, "Pickle in Bag (SPICY)", "PIB102")
+      };
 
-      Movies[3].IsAvailable = false;
+      Rentables[3].IsAvailable = false;
     }
   }
 }
